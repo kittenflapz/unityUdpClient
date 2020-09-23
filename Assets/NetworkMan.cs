@@ -117,17 +117,24 @@ public class NetworkMan : MonoBehaviour
             }
         }
 
-        foreach (Player player in latestGameState.players) // go through each player the server says we have
+        if (playersInGame.Count >= latestGameState.players.Length) // If we have the right number of player cubes in the game
         {
- 
-            foreach (PlayerCube playerCube in playersInGame) // go through each cube we have made
+            // don't do anything
+        }
+        else
+        {
+            foreach (Player player in latestGameState.players) // go through each player the server says we have
             {
-                if (player.id != playerCube.networkID) // if there isn't already a cube with this network id, spawn it
+
+                foreach (PlayerCube playerCube in playersInGame) // go through each cube we have made
                 {
-                    Vector3 randomPos = new Vector3(UnityEngine.Random.Range(-3f, 3f), UnityEngine.Random.Range(-3f, 3f), UnityEngine.Random.Range(-3f, 3f));
-                    GameObject newPlayer = Instantiate(playerPrefab, randomPos, Quaternion.identity);
-                    newPlayer.GetComponent<PlayerCube>().networkID = player.id;
-                    playersInGame.Add(newPlayer.GetComponent<PlayerCube>());
+                    if (player.id != playerCube.networkID) // if there isn't already a cube with this network id, spawn it
+                    {
+                        Vector3 randomPos = new Vector3(UnityEngine.Random.Range(-3f, 3f), UnityEngine.Random.Range(-3f, 3f), UnityEngine.Random.Range(-3f, 3f));
+                        GameObject newPlayer = Instantiate(playerPrefab, randomPos, Quaternion.identity);
+                        newPlayer.GetComponent<PlayerCube>().networkID = player.id;
+                        playersInGame.Add(newPlayer.GetComponent<PlayerCube>());
+                    }
                 }
             }
         }
