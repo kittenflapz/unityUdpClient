@@ -36,7 +36,8 @@ public class NetworkMan : MonoBehaviour
 
     public enum commands{
         NEW_CLIENT,
-        UPDATE
+        UPDATE,
+        DROPPED_CLIENT
     };
     
     [Serializable]
@@ -55,15 +56,26 @@ public class NetworkMan : MonoBehaviour
             public float B;
         }
         public receivedColor color;
+
     }
 
     [Serializable]
-    public class NewPlayer{
+    public class NewPlayer
+    {
+
     }
 
     [Serializable]
-    public class GameState{
+    public class DroppedPlayer
+    {
+        public string id;
+    }
+
+    [Serializable]
+    public class GameState
+    {
         public Player[] players;
+        public List<DroppedPlayer> droppedPlayers = new List<DroppedPlayer>();
     }
 
     public Message latestMessage;
@@ -80,7 +92,7 @@ public class NetworkMan : MonoBehaviour
         
         // do what you'd like with `message` here:
         string returnData = Encoding.ASCII.GetString(message);
-        Debug.Log("Got this: " + returnData);
+        //Debug.Log("Got this: " + returnData);
         
         latestMessage = JsonUtility.FromJson<Message>(returnData);
         try{
@@ -90,6 +102,10 @@ public class NetworkMan : MonoBehaviour
                     break;
                 case commands.UPDATE:
                     latestGameState = JsonUtility.FromJson<GameState>(returnData);
+                    break;
+                case commands.DROPPED_CLIENT:
+                    DroppedPlayer droppedPlayer = JsonUtility.FromJson<DroppedPlayer>(returnData); // get the id of the dropped player
+                    DestroyPlayers(droppedPlayer.id);
                     break;
                 default:
                     Debug.Log("Error");
@@ -108,13 +124,21 @@ public class NetworkMan : MonoBehaviour
     {
         if (playersInGame.Count == 0)
         {
-            foreach (Player player in latestGameState.players) // go through each player the server says we have
+            for (int i = 0; i < latestGameState.players.Length; i++)
             {
                 Vector3 randomPos = new Vector3(UnityEngine.Random.Range(-3f, 3f), UnityEngine.Random.Range(-3f, 3f), UnityEngine.Random.Range(-3f, 3f));
                 GameObject newPlayer = Instantiate(playerPrefab, randomPos, Quaternion.identity);
-                newPlayer.GetComponent<PlayerCube>().networkID = player.id;
+                newPlayer.GetComponent<PlayerCube>().networkID = latestGameState.players[i].id;
                 playersInGame.Add(newPlayer.GetComponent<PlayerCube>());
             }
+            
+            //foreach (Player player in latestGameState.players) // go through each player the server says we have
+            //{
+            //    Vector3 randomPos = new Vector3(UnityEngine.Random.Range(-3f, 3f), UnityEngine.Random.Range(-3f, 3f), UnityEngine.Random.Range(-3f, 3f));
+            //    GameObject newPlayer = Instantiate(playerPrefab, randomPos, Quaternion.identity);
+            //    newPlayer.GetComponent<PlayerCube>().networkID = player.id;
+            //    playersInGame.Add(newPlayer.GetComponent<PlayerCube>());
+            //}
         }
 
         if (playersInGame.Count >= latestGameState.players.Length) // If we have the right number of player cubes in the game
@@ -123,42 +147,84 @@ public class NetworkMan : MonoBehaviour
         }
         else
         {
-            foreach (Player player in latestGameState.players) // go through each player the server says we have
+            for (int i = 0; i < latestGameState.players.Length; i++)
             {
-
-                foreach (PlayerCube playerCube in playersInGame) // go through each cube we have made
+                for (int j = 0; j < playersInGame.Count; j++)
                 {
-                    if (player.id != playerCube.networkID) // if there isn't already a cube with this network id, spawn it
+                    if (latestGameState.players[i].id != playersInGame[j].networkID) // if there isn't already a cube with this network id, spawn it
                     {
                         Vector3 randomPos = new Vector3(UnityEngine.Random.Range(-3f, 3f), UnityEngine.Random.Range(-3f, 3f), UnityEngine.Random.Range(-3f, 3f));
                         GameObject newPlayer = Instantiate(playerPrefab, randomPos, Quaternion.identity);
-                        newPlayer.GetComponent<PlayerCube>().networkID = player.id;
+                        newPlayer.GetComponent<PlayerCube>().networkID = latestGameState.players[i].id;
                         playersInGame.Add(newPlayer.GetComponent<PlayerCube>());
                     }
                 }
-            }
+            } 
+    
         }
     }
 
     void UpdatePlayers()
     {
-        foreach (Player player in latestGameState.players) // go through each player the server says we have
+        for (int i = 0; i < latestGameState.players.Length; i++)
         {
-            foreach (PlayerCube playerCube in playersInGame) // go through each cube we have made
+            for (int j = 0; j < playersInGame.Count; j++)
             {
-                if (player.id == playerCube.networkID) // if the player id and the cube id match
+                if (latestGameState.players[i].id == playersInGame[j].networkID) // if the player id and the cube id match
                 {
-                    playerCube.cubeColor = new Color(player.color.R, player.color.G, player.color.B);
+                    playersInGame[j].cubeColor 
+                        = new Color(latestGameState.players[i].color.R, latestGameState.players[i].color.G, latestGameState.players[i].color.B);
                 }
             }
         }
+
+        //if (playersInGame.Count >= latestGameState.players.Length) // If we have the right number of player cubes in the game
+        //{
+        //    for (int i = 0; i < latestGameState.players.Length; i++)
+        //    {
+        //        for (int j = 0; j < playersInGame.Count; j++)
+        //        {
+        //            if (latestGameState.players[i].id == playersInGame[j].networkID) // if there's a player with this id that matches the cube with this id
+        //            {
+        //                continue; // leave it alone
+        //            }
+        //            else
+        //            {
+        //                playersInGame.RemoveAt(j);
+        //            }
+        //        }
+        //    }
+        //}
+
+
+
+        //foreach (Player player in latestGameState.players) // go through each player the server says we have
+        //{
+        //    foreach (PlayerCube playerCube in playersInGame) // go through each cube we have made
+        //    {
+
+
+        //    }
+        //}
     }
 
-    void DestroyPlayers(){
+    void DestroyPlayers(string _id)
+    {
+        foreach (PlayerCube playerCube in playersInGame) // go through each player the server says we have
+        { 
+            if (playerCube.networkID == _id)
+            {
+                playerCube.markedForDestruction = true;
 
+                playersInGame.Remove(playerCube);
+            }
+        }
+        Debug.Log(playersInGame.Count);
+        playersInGame.TrimExcess();
     }
-    
-    void HeartBeat(){
+
+    void HeartBeat()
+    {
         Byte[] sendBytes = Encoding.ASCII.GetBytes("heartbeat");
         udp.Send(sendBytes, sendBytes.Length);
     }
@@ -166,6 +232,5 @@ public class NetworkMan : MonoBehaviour
     void Update(){
         SpawnPlayers();
         UpdatePlayers();
-        DestroyPlayers();
     }
 }
