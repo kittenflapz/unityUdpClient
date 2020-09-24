@@ -109,16 +109,18 @@ public class NetworkMan : MonoBehaviour
             switch(latestMessage.cmd){
                 case commands.NEW_CLIENT:
                     NewPlayer newPlayer = JsonUtility.FromJson<NewPlayer>(returnData);
-                    Debug.Log("got new client message, trying to spawn the new player. New player id is: " + newPlayer.player.id);
+                    Debug.Log(returnData);
                     playersToSpawn.Add(newPlayer.player.id);
                     break;
                 case commands.UPDATE:
                     latestGameState = JsonUtility.FromJson<GameState>(returnData);
                     UpdatePlayers();
+                    Debug.Log(returnData);
                     break;
                 case commands.DROPPED_CLIENT:
                     DroppedPlayers droppedPlayer = JsonUtility.FromJson<DroppedPlayers>(returnData); // get the id of the dropped player
                     DestroyPlayers(droppedPlayer.id);
+                    Debug.Log(returnData);
                     break;
                 case commands.ALREADY_HERE_PLAYERS: // this command should only come to the newly connected client
                     AlreadyHerePlayerList alreadyHerePlayers = JsonUtility.FromJson<AlreadyHerePlayerList>(returnData);
@@ -126,6 +128,7 @@ public class NetworkMan : MonoBehaviour
                     {
                         playersToSpawn.Add(player.id);
                     }
+                    Debug.Log(returnData);
                     break;
                 default:
                     Debug.Log("Error");
