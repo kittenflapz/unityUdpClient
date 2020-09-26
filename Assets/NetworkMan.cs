@@ -28,6 +28,8 @@ public class NetworkMan : MonoBehaviour
         udp.BeginReceive(new AsyncCallback(OnReceived), udp);
 
         InvokeRepeating("HeartBeat", 1, 1);
+
+        InvokeRepeating("UpdateMyPosition", 1, 1);
     }
 
     void OnDestroy(){
@@ -46,18 +48,24 @@ public class NetworkMan : MonoBehaviour
     public class Message{
         public commands cmd;
     }
-    
+
+    [Serializable]
+    public class PositionUpdater
+    {
+        public Vector3 position;
+    }
+
     [Serializable]
     public class Player{
         public string id;
 
         [Serializable]
-        public struct receivedColor{
-            public float R;
-            public float G;
-            public float B;
+        public struct receivedPosition{
+            public float x;
+            public float y;
+            public float z;
         }
-        public receivedColor color;
+        public receivedPosition position;
 
     }
 
@@ -110,7 +118,11 @@ public class NetworkMan : MonoBehaviour
                 case commands.NEW_CLIENT:
                     NewPlayer newPlayer = JsonUtility.FromJson<NewPlayer>(returnData);
                     Debug.Log(returnData);
-                    playersToSpawn.Add(newPlayer.player.id);
+                    playersToSpawn.Add(newPlayer.player.id); // If I'M the new client, I should be the first thing I spawn
+                    if (myAddress == "") // so my address won't yet be set
+                    {
+                        myAddress = newPlayer.player.id; // so set it
+                    }
                     break;
                 case commands.UPDATE:
                     latestGameState = JsonUtility.FromJson<GameState>(returnData);
@@ -180,8 +192,11 @@ public class NetworkMan : MonoBehaviour
             {
                 if (latestGameState.players[i].id == playersInGame[j].networkID) // if the player id and the cube id match
                 {
-                    playersInGame[j].cubeColor 
-                        = new Color(latestGameState.players[i].color.R, latestGameState.players[i].color.G, latestGameState.players[i].color.B);
+                    if (latestGameState.players[i].id != myAddress)
+                    {
+                        playersInGame[j].newTransformPos =
+                          new Vector3(latestGameState.players[i].position.x, latestGameState.players[i].position.y, latestGameState.players[i].position.z);
+                    }
                 }
             }
         }
@@ -202,6 +217,23 @@ public class NetworkMan : MonoBehaviour
     {
         Byte[] sendBytes = Encoding.ASCII.GetBytes("heartbeat");
         udp.Send(sendBytes, sendBytes.Length);
+    }
+
+    void UpdateMyPosition()
+    {
+        PositionUpdater message = new PositionUpdater();
+
+        for (int i = 0; i < playersInGame.Count; i++) // go through all the players and find which one is me
+        {
+            if (playersInGame[i].networkID == myAddress) // if it is me
+            {
+                message.position.x = playersInGame[i].transform.position.x; // store my position details in a PositionUpdater 
+                message.position.y = playersInGame[i].transform.position.y;
+                message.position.z = playersInGame[i].transform.position.z;
+                Byte[] sendBytes = Encoding.ASCII.GetBytes(JsonUtility.ToJson(message)); // encode that PositionUpdater into a json
+                udp.Send(sendBytes, sendBytes.Length); // send it to the server
+            }
+        }
     }
 
     void Update()
