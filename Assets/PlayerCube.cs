@@ -8,6 +8,7 @@ public class PlayerCube : MonoBehaviour
     public Color cubeColor;
     public bool markedForDestruction;
     public NetworkMan networkMan;
+    public float speed;
 
     public Vector3 newTransformPos;
     // Start is called before the first frame update
@@ -16,6 +17,7 @@ public class PlayerCube : MonoBehaviour
         markedForDestruction = false;
         networkMan = GameObject.Find("NetworkMan").GetComponent<NetworkMan>();
         newTransformPos = Vector3.zero;
+        speed = 5.0f;
     }
 
     // Update is called once per frame
@@ -38,22 +40,22 @@ public class PlayerCube : MonoBehaviour
 
         if (Input.GetKey(KeyCode.UpArrow))
         {
-            transform.Translate(Vector3.forward * Time.deltaTime);
+            transform.Translate(Vector3.forward * Time.deltaTime * speed);
         }
 
         if (Input.GetKey(KeyCode.DownArrow))
         {
-            transform.Translate(-Vector3.forward * Time.deltaTime);
+            transform.Translate(-Vector3.forward * Time.deltaTime * speed);
         }
 
         if (Input.GetKey(KeyCode.LeftArrow))
         {
-            transform.Translate(Vector3.left * Time.deltaTime);
+            transform.Translate(Vector3.left * Time.deltaTime * speed);
         }
 
         if (Input.GetKey(KeyCode.RightArrow))
         {
-            transform.Translate(-Vector3.left * Time.deltaTime);
+            transform.Translate(-Vector3.left * Time.deltaTime * speed);
         }
     }
 

@@ -29,7 +29,7 @@ public class NetworkMan : MonoBehaviour
 
         InvokeRepeating("HeartBeat", 1, 1);
 
-        InvokeRepeating("UpdateMyPosition", 1, 1);
+        InvokeRepeating("UpdateMyPosition", 1, 0.03f);
     }
 
     void OnDestroy(){
